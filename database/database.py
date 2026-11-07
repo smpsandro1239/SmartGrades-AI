@@ -15,9 +15,9 @@ def get_connection(database_path: Path = DATABASE_PATH) -> sqlite3.Connection:
     return connection
 
 
-def initialize_database() -> None:
+def initialize_database(database_path: Path = DATABASE_PATH) -> None:
     """Create the initial tables if they do not already exist."""
-    with get_connection() as connection:
+    with get_connection(database_path) as connection:
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS students (
