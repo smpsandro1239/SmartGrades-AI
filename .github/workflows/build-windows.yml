@@ -1,0 +1,53 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  test:
+    name: Test application
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-build.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-build.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Build Windows executable
+        if: github.event_name != 'pull_request'
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name SmartGrades-AI --collect-all customtkinter --collect-all darkdetect app.py
+
+      - name: Upload executable
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartGrades-AI-Windows-x64
+          path: dist/SmartGrades-AI.exe
+          if-no-files-found: error
+          retention-days: 14
