@@ -4,11 +4,19 @@ __pycache__/
 *.pyd
 .venv/
 venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# PyInstaller outputs
+build/
+dist/
+
+# Environment and secrets
 .env
 .env.*
 !.env.example
-
-# OAuth / Google credentials and tokens
 credentials.json
 token.json
 client_secret*.json
@@ -23,7 +31,6 @@ imports/
 exports/
 *.xlsx
 *.xls
-*.csv
 
 # Logs and local runtime files
 logs/
