@@ -1,13 +1,15 @@
 # SmartGrades-AI
 
-Sistema Windows para preparar e distribuir documentos escolares individualizados por e-mail, com validação, pré-visualização e histórico.
+Aplicação de ambiente de trabalho para Windows para preparar e distribuir documentos escolares individualizados por e-mail, com validação, pré-visualização e histórico.
+
+> **Plataforma de execução:** Windows 11. Esta é uma aplicação desktop Python/CustomTkinter, não uma aplicação Web. A Vercel não é utilizada para executar nem publicar esta aplicação.
 
 ## Estado do desenvolvimento
 
 A aplicação encontra-se em desenvolvimento. A versão atual inclui:
 - Interface gráfica inicial com CustomTkinter.
 - Base de dados SQLite inicial.
-- Importação e validação de ficheiros Excel (.xlsx/.xlsm) e CSV.
+- Importação e validação de ficheiros Excel (.xlsx/.xlsm) e CSV através do serviço de importação.
 - Colunas obrigatórias: `E-mail`, `ID_Aluno` e `Escola`.
 - Localização do documento Word `.docx` através de `documents/<Escola>/<ID_Aluno>.docx`.
 - Preparação de pré-visualização HTML individual.
@@ -39,27 +41,60 @@ Consulta `docs/modelo_alunos.csv` para um exemplo. No Excel, cria uma folha com 
 
 Cada ID deve ser único no ficheiro. Cada linha deve ter um e-mail válido, um ID e uma escola.
 
-## Instalação
+## Executar em modo de desenvolvimento
 
 Requisitos: Windows 11 e Python 3.11 ou superior.
 
 ```powershell
 git clone https://github.com/smpsandro1239/SmartGrades-AI.git
 cd SmartGrades-AI
-py -m venv .venv
+py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 python app.py
 ```
 
+## Gerar o executável Windows
+
+Com Python 3.11 instalado, abre PowerShell na pasta do projeto e executa:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\build_windows.ps1
+```
+
+O script instala as dependências de compilação, executa os testes e só gera o executável se os testes passarem. O ficheiro será criado em:
+
+`dist\SmartGrades-AI.exe`
+
+O executável é gerado para Windows x64. Para o utilizar noutro computador, copia o EXE para esse computador. Não é necessário instalar Python nesse computador.
+
+### Gerar automaticamente através do GitHub
+
+1. Abre o separador **Actions** deste repositório.
+2. Seleciona **Build Windows EXE**.
+3. Clica em **Run workflow** e escolhe a branch pretendida.
+4. Aguarda que os testes e a compilação terminem com sucesso.
+5. Abre a execução concluída e descarrega o artefacto `SmartGrades-AI-Windows-x64`.
+6. Extrai o ZIP e executa `SmartGrades-AI.exe` no Windows.
+
+Também é gerado um executável quando é publicada uma tag cujo nome começa por `v`, por exemplo `v0.1.0`. Em Pull Requests para `main`, o workflow executa os testes, mas não publica o executável.
+
+## Localização dos dados da aplicação
+
+A base de dados e os registos são guardados fora da pasta temporária do PyInstaller, em:
+
+`%LOCALAPPDATA%\SmartGrades-AI\runtime_data\`
+
+Esta localização permite que os dados persistam entre execuções do EXE. Faz cópias de segurança desta pasta quando começar a conter dados importantes.
+
 ## Testes
 
 ```powershell
-python -m pytest
+python -m pip install -r requirements.txt
+python -m pytest -q
 ```
-
-Os testes devem ser executados no ambiente Windows de destino antes de usar dados reais.
 
 ## Segurança e privacidade
 
