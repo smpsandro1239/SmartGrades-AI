@@ -57,3 +57,40 @@ def initialize_database(database_path: Path = DATABASE_PATH) -> None:
             );
             """
         )
+
+
+def insert_email_log(
+    database_path: Path = DATABASE_PATH,
+    student_number: str = "",
+    recipient: str = "",
+    mode: str = "simulation",
+    status: str = "simulated",
+    error_message: str | None = None,
+) -> None:
+    """Persist a dispatch attempt for one recipient."""
+    with get_connection(database_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO email_logs (student_id, recipient, mode, status, message_id, error_message)
+            VALUES (
+                (SELECT id FROM students WHERE student_number = ?),
+                ?, ?, ?, NULL, ?
+            )
+            """,
+            (student_number, recipient, mode, status, error_message),
+        )
+
+
+def list_email_logs(database_path: Path = DATABASE_PATH) -> list[dict[str, str]]:
+    """Return the most recent dispatch attempts with the student number."""
+    with get_connection(database_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT e.recipient, e.mode, e.status, e.error_message, e.created_at, s.student_number
+            FROM email_logs e
+            JOIN students s ON s.id = e.student_id
+            ORDER BY e.created_at DESC
+            LIMIT 100
+            """
+        ).fetchall()
+        return [{key: row[key] for key in row.keys()} for row in rows]
