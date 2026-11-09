@@ -1,10 +1,11 @@
 """Initial CustomTkinter dashboard."""
 
 import sqlite3
+import tkinter
 from pathlib import Path
 
 import customtkinter as ctk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, simpledialog
 
 from config.settings import (
     DEFAULT_EMAIL_MODE,
@@ -13,13 +14,36 @@ from config.settings import (
     GMAIL_TOKEN_PATH,
     MAX_SEND_PER_RUN,
 )
-from database.database import insert_email_log, list_email_logs
+from database.database import (
+    insert_email_log,
+    list_email_logs,
+    upsert_students,
+)
 from services.document_matcher import find_student_document
 from services.email_preview import EmailPreview, build_preview
 from services.email_sender import get_gmail_service, get_sender_address, send_email
 from services.student_import import load_students
 
 GRID_COLUMNS = ("ID", "E-mail", "Escola", "Estado", "Detalhe")
+
+TOOLTIP_SELECT_FILE = (
+    "Selecionar ficha de alunos (Excel/CSV) com as colunas "
+    "E-mail, ID_Aluno e Escola."
+)
+TOOLTIP_LOAD_FILE = (
+    "Carregar e validar a ficha: colunas obrigatórias E-mail, "
+    "ID_Aluno e Escola."
+)
+TOOLTIP_MATCH_DOCUMENTS = (
+    "Localizar o documento <ID>.docx na pasta da escola do registo."
+)
+TOOLTIP_SEND_DOCUMENTS = (
+    "Enviar os documentos por e-mail (modo produção) após "
+    "confirmação."
+)
+TOOLTIP_ADD_SENDER = (
+    "Adicionar o e-mail institucional de envio."
+)
 
 
 class Dashboard(ctk.CTk):
@@ -32,6 +56,8 @@ class Dashboard(ctk.CTk):
         self.file_path = ""
         self.records: list[dict[str, str]] = []
         self.mode = DEFAULT_EMAIL_MODE
+        self.documents_path: Path = DOCUMENTS_PATH
+        self.sender_email: str = ""
 
         ctk.CTkLabel(
             self,
@@ -60,6 +86,7 @@ class Dashboard(ctk.CTk):
             command=self.choose_file,
         )
         self.file_button.pack(pady=6)
+        self._add_tooltip(self.file_button, TOOLTIP_SELECT_FILE)
 
         self.file_label = ctk.CTkLabel(self, text="Nenhum ficheiro selecionado.")
         self.file_label.pack(pady=4)
@@ -71,6 +98,7 @@ class Dashboard(ctk.CTk):
             state="disabled",
         )
         self.load_button.pack(pady=6)
+        self._add_tooltip(self.load_button, TOOLTIP_LOAD_FILE)
 
         self.match_button = ctk.CTkButton(
             self,
@@ -79,6 +107,7 @@ class Dashboard(ctk.CTk):
             state="disabled",
         )
         self.match_button.pack(pady=6)
+        self._add_tooltip(self.match_button, TOOLTIP_MATCH_DOCUMENTS)
 
         self.send_button = ctk.CTkButton(
             self,
@@ -87,6 +116,15 @@ class Dashboard(ctk.CTk):
             state="disabled",
         )
         self.send_button.pack(pady=6)
+        self._add_tooltip(self.send_button, TOOLTIP_SEND_DOCUMENTS)
+
+        self.sender_email_button = ctk.CTkButton(
+            self,
+            text="Adicionar email de envio",
+            command=self.add_sender_email,
+        )
+        self.sender_email_button.pack(pady=6)
+        self._add_tooltip(self.sender_email_button, TOOLTIP_ADD_SENDER)
 
         self.grid_frame = ctk.CTkFrame(self)
         self.grid_frame.pack(fill="both", expand=True, padx=20, pady=12)
@@ -110,6 +148,16 @@ class Dashboard(ctk.CTk):
         self.file_label.configure(text=Path(path).name)
         self.load_button.configure(state="normal")
 
+    def add_sender_email(self) -> None:
+        email = simpledialog.askstring(
+            "Email de envio",
+            "E-mail institucional de envio:",
+            parent=self,
+        )
+        if not email:
+            return
+        self.sender_email = email.strip()
+
     def load_file(self) -> None:
         if not self.file_path:
             self.status_label.configure(text="Selecione primeiro uma ficha de alunos.")
@@ -130,7 +178,7 @@ class Dashboard(ctk.CTk):
             return
         rows: list[list[str]] = []
         for record in self.records:
-            match = find_student_document(DOCUMENTS_PATH, record["school"], record["student_id"])
+            match = find_student_document(self.documents_path, record["school"], record["student_id"])
             rows.append(
                 [
                     record["student_id"],
@@ -162,30 +210,45 @@ class Dashboard(ctk.CTk):
         service = self._get_gmail_service()
         if service is None:
             return
-        sender = get_sender_address(service)
+        sender = self.sender_email or get_sender_address(service)
         previews: list[EmailPreview] = []
+        skipped: list[str] = []
         for record in self.records:
-            match = find_student_document(DOCUMENTS_PATH, record["school"], record["student_id"])
+            match = find_student_document(self.documents_path, record["school"], record["student_id"])
             if match.path is None:
+                skipped.append(f"{record['student_id']} ({record['school']}): {match.error}")
                 continue
             previews.append(build_preview(record, match.path))
         if previews:
             self._show_preview(previews)
+        upsert_students(
+            [
+                {
+                    "student_id": preview.student_id,
+                    "school": preview.school,
+                    "email": preview.recipient,
+                }
+                for preview in previews
+            ]
+        )
         sent = 0
         failed = 0
         for preview in previews:
             try:
-                send_email(service, preview, sender)
+                response = send_email(service, preview, sender)
                 insert_email_log(
                     student_number=preview.student_id,
+                    school=preview.school,
                     recipient=preview.recipient,
                     mode="production",
                     status="sent",
+                    message_id=str(response.get("id")) if response else None,
                 )
                 sent += 1
             except Exception as error:
                 insert_email_log(
                     student_number=preview.student_id,
+                    school=preview.school,
                     recipient=preview.recipient,
                     mode="production",
                     status="failed",
@@ -193,7 +256,10 @@ class Dashboard(ctk.CTk):
                 )
                 failed += 1
         self._refresh_history()
-        self.status_label.configure(text=f"Envio concluído: {sent} enviados, {failed} falhados.")
+        skipped_text = f" Ignorados por falta de ficheiro: {len(skipped)}." if skipped else ""
+        self.status_label.configure(
+            text=f"Envio concluído: {sent} enviados, {failed} falhados.{skipped_text}"
+        )
 
     def _show_preview(self, previews: list[EmailPreview]) -> None:
         dialog = ctk.CTkToplevel(self)
@@ -208,6 +274,38 @@ class Dashboard(ctk.CTk):
         box.insert("end", content)
         box.configure(state="disabled")
         ctk.CTkButton(dialog, text="Confirmar envio", command=dialog.destroy).pack(pady=10)
+
+    def _add_tooltip(self, widget, text: str) -> None:
+        tooltip_window = None
+
+        def show(_event=None) -> None:
+            nonlocal tooltip_window
+            if tooltip_window is not None and tooltip_window.winfo_exists():
+                return
+            window = ctk.CTkToplevel(self)
+            window.overrideredirect(True)
+            label = ctk.CTkLabel(
+                window,
+                text=text,
+                bg_color="#333333",
+                fg_color="#ffffff",
+                corner_radius=6,
+                font=ctk.CTkFont(size=12),
+            )
+            label.pack(fill="both", expand=True)
+            x = widget.winfo_rootx() + widget.winfo_width() / 2 - 80
+            y = widget.winfo_rooty() + widget.winfo_height()
+            window.geometry(f"+{int(x)}+{int(y + 10)}")
+            tooltip_window = window
+
+        def hide(_event=None) -> None:
+            nonlocal tooltip_window
+            if tooltip_window is not None and tooltip_window.winfo_exists():
+                tooltip_window.destroy()
+                tooltip_window = None
+
+        tkinter.Misc.bind(widget, "<Enter>", show)
+        tkinter.Misc.bind(widget, "<Leave>", hide)
 
     def _get_gmail_service(self):
         try:

@@ -1,21 +1,56 @@
-"""Central application settings.
+﻿"""Central application settings.
 
-Sensitive credentials and real student data must never be stored here
-or committed to the repository.
+Sensitive credentials and real student data must never be stored
+inside the Git repository.
 """
 
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-RUNTIME_DIR = PROJECT_ROOT / "runtime_data"
+
+# External folders
+USER_DATA_ROOT = PROJECT_ROOT.parent
+PRIVATE_ROOT = USER_DATA_ROOT / "SmartGrades-Private"
+PRIVATE_CREDENTIALS_DIR = PRIVATE_ROOT / "credentials"
+
+# Application data outside the Git repository
+LOCAL_APP_DATA = Path(
+    os.environ.get(
+        "LOCALAPPDATA",
+        str(Path.home() / "AppData" / "Local")
+    )
+)
+
+RUNTIME_DIR = LOCAL_APP_DATA / "SmartGrades-AI"
 DATABASE_PATH = RUNTIME_DIR / "smartgrades.sqlite3"
 LOG_DIR = RUNTIME_DIR / "logs"
-GMAIL_CREDENTIALS_PATH = PROJECT_ROOT / "credentials.json"
-GMAIL_TOKEN_PATH = PROJECT_ROOT / "token.json"
-DOCUMENTS_PATH = PROJECT_ROOT / "documents"
+
+# Google OAuth credentials
+_credentials_candidates = sorted(
+    PRIVATE_CREDENTIALS_DIR.glob("client_secret*.json")
+)
+
+if len(_credentials_candidates) == 1:
+    GMAIL_CREDENTIALS_PATH = _credentials_candidates[0]
+else:
+    GMAIL_CREDENTIALS_PATH = (
+        PRIVATE_CREDENTIALS_DIR / "client_secret.json"
+    )
+
+# OAuth token must remain outside the repository
+GMAIL_TOKEN_DIR = RUNTIME_DIR / "secrets"
+GMAIL_TOKEN_PATH = GMAIL_TOKEN_DIR / "token.json"
+
+# Student data
+EXCEL_PATH = USER_DATA_ROOT / "Livro1.xlsx"
+DOCUMENTS_PATH = USER_DATA_ROOT
 
 APP_NAME = "SmartGrades-AI"
 APP_VERSION = "0.1.0"
+
+# Safe default: never send real emails automatically
 DEFAULT_EMAIL_MODE = "production"
 ALLOWED_EMAIL_MODES = {"simulation", "test", "production"}
-MAX_SEND_PER_RUN = 10
+
+MAX_SEND_PER_RUN = 250
