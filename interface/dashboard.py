@@ -183,7 +183,7 @@ class Dashboard(ctk.CTk):
         self.body_textbox.pack(fill="x", expand=True, pady=4, padx=16)
 
         self.results_card = ctk.CTkFrame(self)
-        self.results_card.grid(row=2, column=0, sticky="x", padx=20, pady=(0, 12))
+        self.results_card.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 12))
         ctk.CTkLabel(self.results_card, text="Resultados", font=ctk.CTkFont(size=14, weight="bold"), text_color="#202124").pack(pady=(14, 8), padx=16, anchor="w")
         self.scroll_frame = ctk.CTkScrollableFrame(self.results_card)
         self.scroll_frame.pack(fill="both", expand=True, padx=16, pady=(0, 14))
