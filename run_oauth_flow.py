@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import parse_qs
 
+import webbrowser
+
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from wsgiref.simple_server import make_server
@@ -48,7 +50,7 @@ thread.start()
 
 authorization_url, _ = flow.authorization_url()
 print("AUTH_URL=" + authorization_url, flush=True)
-
+webbrowser.open(authorization_url)
 received.wait(600)
 authorization_response = captured["uri"].replace("http", "https")
 token = flow.fetch_token(

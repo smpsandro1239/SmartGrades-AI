@@ -308,7 +308,7 @@ class Dashboard(ctk.CTk):
 
         self.reauth_button = ctk.CTkButton(
             actions_card,
-            text="Reautentrar",
+            text="ReAutentizar",
             command=self._start_reauth,
             state="disabled",
             fg_color=COL_DISABLED,
