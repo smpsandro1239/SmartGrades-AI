@@ -57,6 +57,7 @@ def _build_icon(kind: str, color: str) -> ctk.CTkImage:
 class Dashboard(ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
+        ctk.set_appearance_mode("light")
         self.title("SmartGrades")
         self.geometry("1100x750")
         self.minsize(1000, 750)
