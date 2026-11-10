@@ -52,32 +52,40 @@ class Dashboard(ctk.CTk):
         self.subject: str = "Resultados das provas ModA 2026"
         self.body_text: str = ""
         self.sender: str = "provas@aetsm.pt"
+        self.header_frame = ctk.CTkFrame(self)
+        self.header_frame.pack(fill="x", padx=20, pady=12)
+        self.header_frame.columnconfigure(0, weight=1)
+        self.title_label = ctk.CTkLabel(
+            self.header_frame,
+            text="SmartGrades",
+            font=ctk.CTkFont(size=28, weight="bold"),
+        )
+        self.title_label.grid(row=0, column=0, sticky="w", padx=16, pady=12)
         self.sender_label = ctk.CTkLabel(
-            self,
+            self.header_frame,
             text=f"Email de envio: {self.sender}",
             font=ctk.CTkFont(size=12),
         )
-        self.sender_label.pack(pady=6)
+        self.sender_label.grid(row=0, column=1, sticky="e", padx=16, pady=12)
+        self.subtitle_label = ctk.CTkLabel(
+            self.header_frame,
+            text="Gestão de classificações e distribuição segura por e-mail",
+        )
+        self.subtitle_label.grid(row=1, column=0, sticky="w", padx=16, pady=4)
+
+        self.subject_label = ctk.CTkLabel(self, text="Assunto:")
+        self.subject_label.pack(fill="x", pady=(6, 0))
         self.subject_entry = ctk.CTkEntry(
             self,
             placeholder_text="Assunto do e-mail",
         )
         self.subject_entry.insert(0, self.subject)
-        self.subject_entry.pack(pady=6)
-        self.body_textbox = ctk.CTkTextbox(self, height=120)
+        self.subject_entry.pack(fill="x", pady=4)
+        self.body_label = ctk.CTkLabel(self, text="Mensagem:")
+        self.body_label.pack(fill="x", pady=(6, 0))
+        self.body_textbox = ctk.CTkTextbox(self, height=160)
         self.body_textbox.insert("1.0", self.body_text)
-        self.body_textbox.pack(fill="x", pady=6, padx=20)
-
-        ctk.CTkLabel(
-            self,
-            text="SmartGrades",
-            font=ctk.CTkFont(size=28, weight="bold"),
-        ).pack(pady=(40, 12))
-
-        ctk.CTkLabel(
-            self,
-            text="Gestão de classificações e distribuição segura por e-mail",
-        ).pack(pady=8)
+        self.body_textbox.pack(fill="x", pady=4, padx=20)
 
         ctk.CTkLabel(
             self,
@@ -123,6 +131,9 @@ class Dashboard(ctk.CTk):
             text="Enviar documentos",
             command=self.send_document,
             state="disabled",
+            fg_color="#2E7D32",
+            height=44,
+            font=ctk.CTkFont(size=14, weight="bold"),
         )
         self.send_button.pack(pady=6)
         self._add_tooltip(self.send_button, TOOLTIP_SEND_DOCUMENTS)
