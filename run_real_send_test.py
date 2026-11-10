@@ -1,8 +1,12 @@
 """Temporary script: real Gmail send + receive verification test."""
 
 import base64
+import sys
 
 from config.settings import DOCUMENTS_PATH, GMAIL_CREDENTIALS_PATH, GMAIL_TOKEN_PATH
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 from services.document_matcher import find_student_document
 from services.email_preview import build_preview
 from services.email_sender import get_gmail_service, send_email
@@ -62,7 +66,12 @@ print("FROM", message.get("from"))
 print("TO", message.get("to"))
 print("ATTACHMENTS", attachment_names)
 for body in bodies:
-    print("BODY", body[:200].replace("\n", " "))
+    print(
+        "BODY",
+        body[:200].replace("\n", " ").encode(
+            "utf-8", "replace"
+        ).decode("utf-8", "replace"),
+    )
 
 if not attachment_names:
     raise RuntimeError("Sem partes encontradas no e-mail recebido.")

@@ -12,6 +12,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import Resource, build
 
+from config.settings import GMAIL_SENDER_NAME
 from services.email_preview import EmailPreview
 
 GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send"
@@ -112,7 +113,7 @@ def build_raw_message(
 
     if sender:
         message["From"] = formataddr(
-            ("SmartGrades-AI", sender)
+            (GMAIL_SENDER_NAME, sender)
         )
 
     message["To"] = preview.recipient

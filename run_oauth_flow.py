@@ -21,7 +21,10 @@ _client_config = json.loads(
 
 flow = InstalledAppFlow.from_client_config(
     _client_config,
-    scopes=[GMAIL_SEND_SCOPE],
+    scopes=[
+        GMAIL_SEND_SCOPE,
+        "https://www.googleapis.com/auth/gmail.readonly",
+    ],
 )
 flow.redirect_uri = "http://localhost:8080/"
 flow.prompt = "consent"
@@ -69,7 +72,10 @@ credentials = Credentials(
     token_uri=token.get("token_uri", "https://oauth2.googleapis.com/token"),
     client_id=_client["client_id"],
     client_secret=_client["client_secret"],
-    scopes=[GMAIL_SEND_SCOPE],
+    scopes=[
+        GMAIL_SEND_SCOPE,
+        "https://www.googleapis.com/auth/gmail.readonly",
+    ],
     expiry=_expires_at,
 )
 server.shutdown()

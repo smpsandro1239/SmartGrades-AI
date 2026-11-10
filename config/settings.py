@@ -41,6 +41,7 @@ GMAIL_CREDENTIALS_PATH = (
 # OAuth token must remain outside the repository
 GMAIL_TOKEN_DIR = RUNTIME_DIR / "secrets"
 GMAIL_TOKEN_PATH = GMAIL_TOKEN_DIR / "token.json"
+GMAIL_SENDER_NAME = "Agrupamento de Escolas Trigal Santa Maria"
 
 # Student data
 EXCEL_PATH = USER_DATA_ROOT / "Livro1.xlsx"

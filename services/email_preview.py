@@ -19,7 +19,8 @@ def extract_docx_text(path: Path) -> str:
     """Extract readable plain text from a Word document."""
     with ZipFile(path) as archive:
         xml = archive.read("word/document.xml").decode("utf-8")
-    text = re.sub(r"<[^>]+>", "", xml)
+    text = re.sub(r"</w:p>", "\n", xml)
+    text = re.sub(r"<[^>]+>", "", text)
     return unescape(text).strip()
 
 
@@ -42,7 +43,7 @@ def build_preview(
         content = (
             body_text
             if "<" in body_text and ">" in body_text
-            else escape(body_text).replace("\n", "<br>")
+            else "<br>".join(escape(line) for line in body_text.replace("\r\n", "\n").split("\n"))
         )
     elif source and source.strip():
         content = escape(source)
