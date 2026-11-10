@@ -28,15 +28,15 @@ LOG_DIR = RUNTIME_DIR / "logs"
 
 # Google OAuth credentials
 _credentials_candidates = sorted(
-    PRIVATE_CREDENTIALS_DIR.glob("client_secret*.json")
+    PRIVATE_CREDENTIALS_DIR.glob("client_secret*.json"),
+    key=lambda path: path.stat().st_mtime,
 )
 
-if len(_credentials_candidates) == 1:
-    GMAIL_CREDENTIALS_PATH = _credentials_candidates[0]
-else:
-    GMAIL_CREDENTIALS_PATH = (
-        PRIVATE_CREDENTIALS_DIR / "client_secret.json"
-    )
+GMAIL_CREDENTIALS_PATH = (
+    _credentials_candidates[-1]
+    if _credentials_candidates
+    else PRIVATE_CREDENTIALS_DIR / "client_secret.json"
+)
 
 # OAuth token must remain outside the repository
 GMAIL_TOKEN_DIR = RUNTIME_DIR / "secrets"
