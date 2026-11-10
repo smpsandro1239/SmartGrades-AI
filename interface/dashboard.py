@@ -6,6 +6,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
+from PIL import Image, ImageDraw
 from config.settings import (
     DEFAULT_EMAIL_MODE,
     DOCUMENTS_PATH,
@@ -38,12 +39,29 @@ TOOLTIP_SEND_DOCUMENTS = (
 )
 
 
+def _build_icon(kind: str, color: str) -> ctk.CTkImage:
+    size = 18
+    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    if kind == "folder":
+        draw.rectangle([1, 5, 17, 16], fill=color)
+        draw.rectangle([4, 2, 12, 7], fill=color)
+    elif kind == "send":
+        draw.polygon([(2, 11), (11, 1), (17, 6), (12, 18), (10, 18), (4, 6)], fill=color)
+    elif kind == "search":
+        draw.ellipse([2, 3, 16, 17], outline=color, width=2)
+        draw.ellipse([11, 8, 14, 11], fill=color)
+    return ctk.CTkImage(light_image=image, dark_image=image, size=(size, size))
+
+
 class Dashboard(ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
         self.title("SmartGrades")
-        self.geometry("900x600")
-        self.minsize(760, 500)
+        self.geometry("1020x720")
+        self.minsize(880, 560)
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
 
         self.file_path = ""
         self.records: list[dict[str, str]] = []
@@ -53,7 +71,7 @@ class Dashboard(ctk.CTk):
         self.body_text: str = ""
         self.sender: str = "provas@aetsm.pt"
         self.header_frame = ctk.CTkFrame(self)
-        self.header_frame.pack(fill="x", padx=20, pady=12)
+        self.header_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=12)
         self.header_frame.columnconfigure(0, weight=1)
         self.title_label = ctk.CTkLabel(
             self.header_frame,
@@ -61,96 +79,123 @@ class Dashboard(ctk.CTk):
             font=ctk.CTkFont(size=28, weight="bold"),
         )
         self.title_label.grid(row=0, column=0, sticky="w", padx=16, pady=12)
+        self.subtitle_label = ctk.CTkLabel(
+            self.header_frame,
+            text="Gestão de classificações e distribuição segura por e-mail",
+        )
+        self.subtitle_label.grid(row=1, column=0, sticky="w", padx=16, pady=(0, 10))
         self.sender_label = ctk.CTkLabel(
             self.header_frame,
             text=f"Email de envio: {self.sender}",
             font=ctk.CTkFont(size=12),
         )
         self.sender_label.grid(row=0, column=1, sticky="e", padx=16, pady=12)
-        self.subtitle_label = ctk.CTkLabel(
+        self.mode_label = ctk.CTkLabel(
             self.header_frame,
-            text="Gestão de classificações e distribuição segura por e-mail",
+            text=f"Modo: {self.mode}",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#2E7D32" if self.mode == "production" else "#B26A00",
         )
-        self.subtitle_label.grid(row=1, column=0, sticky="w", padx=16, pady=4)
+        self.mode_label.grid(row=1, column=1, sticky="e", padx=16, pady=(0, 10))
 
-        self.subject_label = ctk.CTkLabel(self, text="Assunto:")
-        self.subject_label.pack(fill="x", pady=(6, 0))
-        self.subject_entry = ctk.CTkEntry(
-            self,
-            placeholder_text="Assunto do e-mail",
+        self.content_frame = ctk.CTkFrame(self)
+        self.content_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 12))
+        self.content_frame.columnconfigure(0, weight=1)
+        self.content_frame.columnconfigure(1, weight=1)
+        self.content_frame.rowconfigure(0, weight=1)
+
+        self.left_frame = ctk.CTkFrame(self.content_frame, corner_radius=14, border_width=0, fg_color="#F7F8FA")
+        self.left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 14))
+        self.left_frame.columnconfigure(0, weight=1)
+
+        self.right_frame = ctk.CTkFrame(self.content_frame, corner_radius=14, border_width=0, fg_color="#FFFFFF")
+        self.right_frame.grid(row=0, column=1, sticky="nsew", padx=(14, 0))
+        self.right_frame.columnconfigure(0, weight=1)
+
+        file_card = ctk.CTkFrame(
+            self.left_frame,
+            corner_radius=14,
+            border_width=1,
+            border_color="#E4E7EC",
+            fg_color="#FFFFFF",
         )
-        self.subject_entry.insert(0, self.subject)
-        self.subject_entry.pack(fill="x", pady=4)
-        self.body_label = ctk.CTkLabel(self, text="Mensagem:")
-        self.body_label.pack(fill="x", pady=(6, 0))
-        self.body_textbox = ctk.CTkTextbox(self, height=160)
-        self.body_textbox.insert("1.0", self.body_text)
-        self.body_textbox.pack(fill="x", pady=4, padx=20)
-
-        ctk.CTkLabel(
-            self,
-            text=f"Modo de envio: {self.mode}.",
-        ).pack(pady=20)
-        if self.mode == "simulation":
-            ctk.CTkLabel(
-                self,
-                text="Nenhum e-mail será enviado.",
-            ).pack(pady=8)
-
+        file_card.pack(fill="x", padx=14, pady=14)
+        ctk.CTkLabel(file_card, text="Ficha de dados", font=ctk.CTkFont(size=14, weight="bold"), text_color="#202124").pack(pady=(14, 8), padx=16, anchor="w")
         self.file_button = ctk.CTkButton(
-            self,
+            file_card,
             text="Selecionar ficha (Excel/CSV)",
             command=self.choose_file,
+            image=_build_icon("folder", "#607D8B"),
+            compound="left",
         )
-        self.file_button.pack(pady=6)
+        self.file_button.pack(pady=(0, 6), padx=16)
         self._add_tooltip(self.file_button, TOOLTIP_SELECT_FILE)
-
-        self.file_label = ctk.CTkLabel(self, text="Nenhum ficheiro selecionado.")
-        self.file_label.pack(pady=4)
-
-        self.load_button = ctk.CTkButton(
-            self,
-            text="Carregar e validar",
-            command=self.load_file,
-            state="disabled",
-        )
-        self.load_button.pack(pady=6)
+        self.file_label = ctk.CTkLabel(file_card, text="Nenhum ficheiro selecionado.", text_color="#6B7280")
+        self.file_label.pack(pady=(0, 10), padx=16)
+        self.load_button = ctk.CTkButton(file_card, text="Carregar e validar", command=self.load_file, state="disabled")
+        self.load_button.pack(pady=(0, 6), padx=16)
         self._add_tooltip(self.load_button, TOOLTIP_LOAD_FILE)
 
+        actions_card = ctk.CTkFrame(self.left_frame, corner_radius=14, border_width=1, border_color="#E4E7EC", fg_color="#FFFFFF")
+        actions_card.pack(fill="x", expand=True, padx=14, pady=(0, 14))
+        ctk.CTkLabel(actions_card, text="Ações", font=ctk.CTkFont(size=14, weight="bold"), text_color="#202124").pack(pady=(14, 8), padx=16, anchor="w")
         self.match_button = ctk.CTkButton(
-            self,
+            actions_card,
             text="Localizar documentos",
             command=self.match_documents,
             state="disabled",
+            image=_build_icon("search", "#607D8B"),
+            compound="left",
         )
-        self.match_button.pack(pady=6)
+        self.match_button.pack(pady=(0, 8), padx=16)
         self._add_tooltip(self.match_button, TOOLTIP_MATCH_DOCUMENTS)
-
         self.send_button = ctk.CTkButton(
-            self,
+            actions_card,
             text="Enviar documentos",
             command=self.send_document,
             state="disabled",
             fg_color="#2E7D32",
+            text_color="#FFFFFF",
             height=44,
+            corner_radius=10,
             font=ctk.CTkFont(size=14, weight="bold"),
+            image=_build_icon("send", "#FFFFFF"),
+            compound="left",
         )
-        self.send_button.pack(pady=6)
+        self.send_button.pack(pady=(0, 8), padx=16)
         self._add_tooltip(self.send_button, TOOLTIP_SEND_DOCUMENTS)
 
-        self.scroll_frame = ctk.CTkScrollableFrame(self)
-        self.scroll_frame.pack(fill="both", expand=True, padx=20, pady=12)
+        preview_card = ctk.CTkFrame(self.right_frame, corner_radius=14, border_width=1, border_color="#E4E7EC", fg_color="#FFFFFF")
+        preview_card.pack(fill="x", expand=True, padx=14, pady=14)
+        ctk.CTkLabel(preview_card, text="Pré-visualização do e-mail", font=ctk.CTkFont(size=14, weight="bold"), text_color="#202124").pack(pady=(14, 4), padx=16, anchor="w")
+        self.subject_label = ctk.CTkLabel(preview_card, text="Assunto:")
+        self.subject_label.pack(fill="x", pady=(10, 0), padx=16)
+        self.subject_entry = ctk.CTkEntry(
+            preview_card,
+            placeholder_text="Assunto do e-mail",
+        )
+        self.subject_entry.insert(0, self.subject)
+        self.subject_entry.pack(fill="x", pady=4, padx=16)
+        self.body_label = ctk.CTkLabel(preview_card, text="Mensagem:")
+        self.body_label.pack(fill="x", pady=(10, 0), padx=16)
+        self.body_textbox = ctk.CTkTextbox(preview_card, height=180)
+        self.body_textbox.insert("1.0", self.body_text)
+        self.body_textbox.pack(fill="x", expand=True, pady=4, padx=16)
 
+        self.results_card = ctk.CTkFrame(self)
+        self.results_card.grid(row=2, column=0, sticky="x", padx=20, pady=(0, 12))
+        ctk.CTkLabel(self.results_card, text="Resultados", font=ctk.CTkFont(size=14, weight="bold"), text_color="#202124").pack(pady=(14, 8), padx=16, anchor="w")
+        self.scroll_frame = ctk.CTkScrollableFrame(self.results_card)
+        self.scroll_frame.pack(fill="both", expand=True, padx=16, pady=(0, 14))
         self.grid_frame = ctk.CTkFrame(self.scroll_frame)
-        self.grid_frame.pack(fill="x", expand=True, padx=10, pady=4)
+        self.grid_frame.pack(fill="x", expand=True, padx=8, pady=4)
         self._render_grid([])
-
         self.history_text = ctk.CTkTextbox(self.scroll_frame, height=140)
-        self.history_text.pack(fill="x", padx=10, pady=(0, 4))
+        self.history_text.pack(fill="x", padx=8, pady=(0, 4))
         self.history_text.configure(state="disabled")
 
         self.status_label = ctk.CTkLabel(self, text="")
-        self.status_label.pack(pady=(0, 12))
+        self.status_label.grid(row=3, column=0, sticky="w", padx=20, pady=(0, 12))
 
     def choose_file(self) -> None:
         path = filedialog.askopenfilename(
@@ -174,8 +219,7 @@ class Dashboard(ctk.CTk):
             self._clear_results()
             return
         self.match_button.configure(state="normal")
-        self.send_button.configure(state="normal")
-        self.status_label.configure(text=f"{len(self.records)} registos validados.")
+        self.status_label.configure(text=f"{len(self.records)} registos validados. Avança para localizar os documentos.")
 
     def match_documents(self) -> None:
         if not self.records:
@@ -194,7 +238,8 @@ class Dashboard(ctk.CTk):
                 ]
             )
         self._render_grid(rows)
-        self.status_label.configure(text=f"{len(rows)} alunos processados.")
+        self.send_button.configure(state="normal")
+        self.status_label.configure(text=f"{len(rows)} alunos processados. Revise o e-mail e envie.")
 
     def send_document(self) -> None:
         if self.mode != "production":
@@ -334,13 +379,31 @@ class Dashboard(ctk.CTk):
                 self.grid_frame,
                 text=title,
                 font=ctk.CTkFont(size=11, weight="bold"),
+                bg_color="#EDF0F4",
+                fg_color="#202124",
+                corner_radius=8,
             ).grid(row=0, column=column, sticky="nsew", padx=6, pady=6)
         for row_index, row in enumerate(rows, start=1):
+            row_bg = "#FFFFFF" if row_index % 2 == 1 else "#F7F9FC"
             for column, text in enumerate(row):
-                ctk.CTkLabel(
-                    self.grid_frame,
-                    text=str(text),
-                ).grid(row=row_index, column=column, sticky="nsew", padx=6, pady=6)
+                if column == 3 and text in ("Encontrado", "Em falta"):
+                    is_found = text == "Encontrado"
+                    label = ctk.CTkLabel(
+                        self.grid_frame,
+                        text=text,
+                        bg_color="#D9EDDA" if is_found else "#F6D5D3",
+                        fg_color="#1E6B23" if is_found else "#B3261E",
+                        corner_radius=12,
+                        font=ctk.CTkFont(size=11, weight="bold"),
+                    )
+                else:
+                    label = ctk.CTkLabel(
+                        self.grid_frame,
+                        text=str(text),
+                        bg_color=row_bg,
+                        fg_color="#202124" if str(text) else "#9AA0A6",
+                    )
+                label.grid(row=row_index, column=column, sticky="nsew", padx=6, pady=6)
             self.grid_frame.grid_rowconfigure(row_index, weight=1)
         for column in range(len(GRID_COLUMNS)):
             self.grid_frame.grid_columnconfigure(column, weight=1)
