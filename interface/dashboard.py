@@ -65,6 +65,7 @@ class Dashboard(ctk.CTk):
         self.rowconfigure(1, weight=3)
         self.rowconfigure(2, weight=2)
         self.rowconfigure(3, weight=0)
+        self.configure(bg_color="#F3F4F6")
 
         self.file_path = ""
         self.records: list[dict[str, str]] = []
@@ -146,7 +147,7 @@ class Dashboard(ctk.CTk):
             image=_build_icon("search", "#FFFFFF"),
             compound="left",
         )
-        self.match_button.pack(pady=5, padx=20, fill="x")
+        self.match_button.pack(side="top", pady=10, padx=20, fill="x")
         self._add_tooltip(self.match_button, TOOLTIP_MATCH_DOCUMENTS)
         self.send_button = ctk.CTkButton(
             actions_card,
@@ -155,12 +156,12 @@ class Dashboard(ctk.CTk):
             state="disabled",
             fg_color="#2E7D32",
             hover_color="#1B5E20",
-            height=40,
+            height=45,
             font=ctk.CTkFont(size=14, weight="bold"),
             image=_build_icon("send", "#FFFFFF"),
             compound="left",
         )
-        self.send_button.pack(pady=(15, 20), padx=20, fill="x")
+        self.send_button.pack(side="bottom", pady=15, padx=20, fill="x")
         self._add_tooltip(self.send_button, TOOLTIP_SEND_DOCUMENTS)
 
         self.right_frame = ctk.CTkFrame(self.content_frame)
@@ -374,10 +375,11 @@ class Dashboard(ctk.CTk):
             ctk.CTkLabel(
                 self.grid_frame,
                 text=title,
-                font=ctk.CTkFont(size=11, weight="bold"),
-                bg_color="#F3F4F6",
-                fg_color="#202124",
-                corner_radius=8,
+                font=ctk.CTkFont(size=12, weight="bold"),
+                bg_color="transparent",
+                fg_color="#111827",
+                text_color="#111827",
+                corner_radius=6,
             ).grid(row=0, column=column, sticky="nsew", padx=6, pady=6)
         for row_index, row in enumerate(rows, start=1):
             row_bg = "#FFFFFF" if row_index % 2 == 1 else "#F9FAFB"
@@ -387,8 +389,8 @@ class Dashboard(ctk.CTk):
                     label = ctk.CTkLabel(
                         self.grid_frame,
                         text=text,
-                        bg_color="#D9EDDA" if is_found else "#F6D5D3",
-                        fg_color="#1E6B23" if is_found else "#B3261E",
+                        bg_color="#DCFCE7" if is_found else "#FEE2E2",
+                        fg_color="#166534" if is_found else "#991B1B",
                         corner_radius=12,
                         font=ctk.CTkFont(size=11, weight="bold"),
                     )
@@ -397,7 +399,8 @@ class Dashboard(ctk.CTk):
                         self.grid_frame,
                         text=str(text),
                         bg_color=row_bg,
-                        fg_color="#202124",
+                        fg_color="#374151",
+                        text_color="#374151",
                     )
                 label.grid(row=row_index, column=column, sticky="nsew", padx=6, pady=6)
             self.grid_frame.grid_rowconfigure(row_index, weight=1)
