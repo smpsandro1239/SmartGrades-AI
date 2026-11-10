@@ -59,7 +59,7 @@ class Dashboard(ctk.CTk):
         super().__init__()
         self.title("SmartGrades")
         self.geometry("1100x750")
-        self.minsize(900, 600)
+        self.minsize(1000, 750)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=0)
         self.rowconfigure(1, weight=3)
@@ -74,27 +74,31 @@ class Dashboard(ctk.CTk):
         self.body_text: str = ""
         self.sender: str = "provas@aetsm.pt"
 
-        self.header_frame = ctk.CTkFrame(self, corner_radius=0)
+        self.header_frame = ctk.CTkFrame(self, corner_radius=0, bg_color="transparent")
         self.header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
         self.header_frame.columnconfigure(0, weight=1)
 
-        title_box = ctk.CTkFrame(self.header_frame)
-        title_box.grid(row=0, column=0, sticky="w")
-        ctk.CTkLabel(title_box, text="SmartGrades", font=ctk.CTkFont(size=28, weight="bold")).pack(anchor="w")
-        ctk.CTkLabel(title_box, text="Gestão de classificações e distribuição segura por e-mail", text_color="gray").pack(anchor="w")
+        self.title_label = ctk.CTkLabel(self.header_frame, text="SmartGrades", font=ctk.CTkFont(size=28, weight="bold"))
+        self.title_label.grid(row=0, column=0, sticky="nw", padx=16, pady=12)
 
-        info_box = ctk.CTkFrame(self.header_frame)
-        info_box.grid(row=0, column=1, sticky="e")
+        self.subtitle_label = ctk.CTkLabel(
+            self.header_frame,
+            text="Gestão de classificações e distribuição segura por e-mail",
+            text_color="gray",
+        )
+        self.subtitle_label.grid(row=1, column=0, sticky="nw", padx=16, pady=(0, 8))
+
         self.sender_label = ctk.CTkLabel(
-            info_box,
+            self.header_frame,
             text=f"Email de envio: {self.sender}",
             font=ctk.CTkFont(size=12, weight="bold"),
         )
-        self.sender_label.pack(anchor="e", pady=(0, 5))
+        self.sender_label.grid(row=0, column=1, sticky="ne", padx=20, pady=12)
+
         mode_color = "#2E7D32" if self.mode == "production" else "#B26A00"
         mode_text = "PRODUÇÃO" if self.mode == "production" else "SIMULAÇÃO"
         self.mode_label = ctk.CTkLabel(
-            info_box,
+            self.header_frame,
             text=f"Modo: {mode_text}",
             font=ctk.CTkFont(size=11, weight="bold"),
             fg_color=mode_color,
@@ -102,7 +106,7 @@ class Dashboard(ctk.CTk):
             corner_radius=4,
             width=100,
         )
-        self.mode_label.pack(anchor="e")
+        self.mode_label.grid(row=1, column=1, sticky="ne", padx=20, pady=(0, 12))
 
         self.content_frame = ctk.CTkFrame(self)
         self.content_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
@@ -371,12 +375,12 @@ class Dashboard(ctk.CTk):
                 self.grid_frame,
                 text=title,
                 font=ctk.CTkFont(size=11, weight="bold"),
-                bg_color="#EDF0F4",
+                bg_color="#F3F4F6",
                 fg_color="#202124",
                 corner_radius=8,
             ).grid(row=0, column=column, sticky="nsew", padx=6, pady=6)
         for row_index, row in enumerate(rows, start=1):
-            row_bg = "#FFFFFF" if row_index % 2 == 1 else "#F7F9FC"
+            row_bg = "#FFFFFF" if row_index % 2 == 1 else "#F9FAFB"
             for column, text in enumerate(row):
                 if column == 3 and text in ("Encontrado", "Em falta"):
                     is_found = text == "Encontrado"
@@ -393,7 +397,7 @@ class Dashboard(ctk.CTk):
                         self.grid_frame,
                         text=str(text),
                         bg_color=row_bg,
-                        fg_color="#202124" if str(text) else "#9AA0A6",
+                        fg_color="#202124",
                     )
                 label.grid(row=row_index, column=column, sticky="nsew", padx=6, pady=6)
             self.grid_frame.grid_rowconfigure(row_index, weight=1)
