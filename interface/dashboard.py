@@ -3,10 +3,9 @@
 import sqlite3
 import tkinter
 from pathlib import Path
+from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
-from tkinter import filedialog, messagebox, simpledialog
-
 from config.settings import (
     DEFAULT_EMAIL_MODE,
     DOCUMENTS_PATH,
@@ -14,14 +13,10 @@ from config.settings import (
     GMAIL_TOKEN_PATH,
     MAX_SEND_PER_RUN,
 )
-from database.database import (
-    insert_email_log,
-    list_email_logs,
-    upsert_students,
-)
+from database.database import insert_email_log, list_email_logs, upsert_students
 from services.document_matcher import find_student_document
 from services.email_preview import EmailPreview, build_preview
-from services.email_sender import get_gmail_service, get_sender_address, send_email
+from services.email_sender import get_gmail_service, send_email
 from services.student_import import load_students
 
 GRID_COLUMNS = ("ID", "E-mail", "Escola", "Estado", "Detalhe")
@@ -41,15 +36,12 @@ TOOLTIP_SEND_DOCUMENTS = (
     "Enviar os documentos por e-mail (modo produção) após "
     "confirmação."
 )
-TOOLTIP_ADD_SENDER = (
-    "Adicionar o e-mail institucional de envio."
-)
 
 
 class Dashboard(ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("SmartGrades-AI")
+        self.title("SmartGrades")
         self.geometry("900x600")
         self.minsize(760, 500)
 
@@ -57,11 +49,28 @@ class Dashboard(ctk.CTk):
         self.records: list[dict[str, str]] = []
         self.mode = DEFAULT_EMAIL_MODE
         self.documents_path: Path = DOCUMENTS_PATH
-        self.sender_email: str = ""
+        self.subject: str = "Resultados das provas ModA 2026"
+        self.body_text: str = ""
+        self.sender: str = "provas@aetsm.pt"
+        self.sender_label = ctk.CTkLabel(
+            self,
+            text=f"Email de envio: {self.sender}",
+            font=ctk.CTkFont(size=12),
+        )
+        self.sender_label.pack(pady=6)
+        self.subject_entry = ctk.CTkEntry(
+            self,
+            placeholder_text="Assunto do e-mail",
+        )
+        self.subject_entry.insert(0, self.subject)
+        self.subject_entry.pack(pady=6)
+        self.body_textbox = ctk.CTkTextbox(self, height=120)
+        self.body_textbox.insert("1.0", self.body_text)
+        self.body_textbox.pack(fill="x", pady=6, padx=20)
 
         ctk.CTkLabel(
             self,
-            text="SmartGrades-AI",
+            text="SmartGrades",
             font=ctk.CTkFont(size=28, weight="bold"),
         ).pack(pady=(40, 12))
 
@@ -118,20 +127,15 @@ class Dashboard(ctk.CTk):
         self.send_button.pack(pady=6)
         self._add_tooltip(self.send_button, TOOLTIP_SEND_DOCUMENTS)
 
-        self.sender_email_button = ctk.CTkButton(
-            self,
-            text="Adicionar email de envio",
-            command=self.add_sender_email,
-        )
-        self.sender_email_button.pack(pady=6)
-        self._add_tooltip(self.sender_email_button, TOOLTIP_ADD_SENDER)
+        self.scroll_frame = ctk.CTkScrollableFrame(self)
+        self.scroll_frame.pack(fill="both", expand=True, padx=20, pady=12)
 
-        self.grid_frame = ctk.CTkFrame(self)
-        self.grid_frame.pack(fill="both", expand=True, padx=20, pady=12)
+        self.grid_frame = ctk.CTkFrame(self.scroll_frame)
+        self.grid_frame.pack(fill="x", expand=True, padx=10, pady=4)
         self._render_grid([])
 
-        self.history_text = ctk.CTkTextbox(self, height=140)
-        self.history_text.pack(fill="x", padx=20, pady=(0, 12))
+        self.history_text = ctk.CTkTextbox(self.scroll_frame, height=140)
+        self.history_text.pack(fill="x", padx=10, pady=(0, 4))
         self.history_text.configure(state="disabled")
 
         self.status_label = ctk.CTkLabel(self, text="")
@@ -147,16 +151,6 @@ class Dashboard(ctk.CTk):
         self.file_path = path
         self.file_label.configure(text=Path(path).name)
         self.load_button.configure(state="normal")
-
-    def add_sender_email(self) -> None:
-        email = simpledialog.askstring(
-            "Email de envio",
-            "E-mail institucional de envio:",
-            parent=self,
-        )
-        if not email:
-            return
-        self.sender_email = email.strip()
 
     def load_file(self) -> None:
         if not self.file_path:
@@ -210,7 +204,7 @@ class Dashboard(ctk.CTk):
         service = self._get_gmail_service()
         if service is None:
             return
-        sender = self.sender_email or get_sender_address(service)
+        sender = self.sender.strip()
         previews: list[EmailPreview] = []
         skipped: list[str] = []
         for record in self.records:
@@ -218,7 +212,14 @@ class Dashboard(ctk.CTk):
             if match.path is None:
                 skipped.append(f"{record['student_id']} ({record['school']}): {match.error}")
                 continue
-            previews.append(build_preview(record, match.path))
+            previews.append(
+                build_preview(
+                    record,
+                    match.path,
+                    body_text=self.body_textbox.get("1.0", "end").strip(),
+                    subject=self.subject_entry.get().strip() or self.subject,
+                )
+            )
         if previews:
             self._show_preview(previews)
         upsert_students(

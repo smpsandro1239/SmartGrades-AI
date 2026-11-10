@@ -1,5 +1,4 @@
 """Prepare individual HTML email previews; this module never sends email."""
-from __future__ import annotations
 import re
 from dataclasses import dataclass
 from html import escape, unescape
@@ -29,6 +28,7 @@ def build_preview(
     attachment: Path,
     school_logo: Path | None = None,
     body_text: str | None = None,
+    subject: str = "Documento escolar do aluno",
 ) -> EmailPreview:
     recipient = student["email"]
     student_id = escape(student["student_id"])
@@ -38,16 +38,29 @@ def build_preview(
         # Embed a local logo only at rendering time in a later UI layer; do not expose filesystem paths.
         logo_html = '<p class="logo-placeholder">Logótipo da escola</p>'
     source = body_text if body_text and body_text.strip() else extract_docx_text(attachment)
-    content = escape(source) if source and source.strip() else (
-        "Exmo.(a) Encarregado(a) de Educação,"
-        f"<br>Segue em anexo o documento relativo ao aluno com o identificador <strong>{student_id}</strong>.<br>"
-        f"Escola: {school}<br>Com os melhores cumprimentos."
-    )
+    if body_text and body_text.strip():
+        content = body_text
+    elif source and source.strip():
+        content = escape(source)
+    else:
+        content = (
+            "Exmo.(a) Encarregado(a) de Educação,"
+            f"<br>Segue em anexo o documento relativo ao aluno com o identificador <strong>{student_id}</strong>.<br>"
+            f"Escola: {school}<br>"
+            f"Com os melhores cumprimentos."
+        )
     body = (
         '<!doctype html><html lang="pt"><meta charset="utf-8"><body>'
         '<main style="font-family:Arial,sans-serif;max-width:640px;margin:auto">'
-        f'{logo_html}<h2>Comunicação escolar</h2>'
+        f'{logo_html}<h2 style="font-size:28px;margin:0 0 16px;">{escape(subject)}</h2>'
         f'<p>{content}</p>'
         '</main></body></html>'
     )
-    return EmailPreview(recipient, "Documento escolar do aluno", body, attachment, student["student_id"], student["school"])
+    return EmailPreview(
+        recipient,
+        subject,
+        body,
+        attachment,
+        student["student_id"],
+        student["school"],
+    )
