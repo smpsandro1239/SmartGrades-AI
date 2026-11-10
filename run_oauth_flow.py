@@ -22,6 +22,7 @@ flow = InstalledAppFlow.from_client_config(
     scopes=[GMAIL_SEND_SCOPE],
 )
 flow.redirect_uri = "http://localhost:8080/"
+flow.prompt = "consent"
 
 captured = {"uri": ""}
 received = threading.Event()

@@ -39,7 +39,11 @@ def build_preview(
         logo_html = '<p class="logo-placeholder">Logótipo da escola</p>'
     source = body_text if body_text and body_text.strip() else extract_docx_text(attachment)
     if body_text and body_text.strip():
-        content = body_text
+        content = (
+            body_text
+            if "<" in body_text and ">" in body_text
+            else escape(body_text).replace("\n", "<br>")
+        )
     elif source and source.strip():
         content = escape(source)
     else:
