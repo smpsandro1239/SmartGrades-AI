@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import json
 from email.message import EmailMessage
 from email.utils import formataddr
 from pathlib import Path
@@ -35,8 +36,13 @@ def get_gmail_credentials(
             "a autenticação OAuth primeiro."
         )
 
-    credentials = Credentials.from_authorized_user_file(
-        str(token_file),
+    token_data = json.loads(
+        token_file.read_text(encoding="utf-8")
+    )
+    token_data.setdefault("refresh_token", None)
+
+    credentials = Credentials.from_authorized_user_info(
+        token_data,
         [GMAIL_SEND_SCOPE]
     )
 
