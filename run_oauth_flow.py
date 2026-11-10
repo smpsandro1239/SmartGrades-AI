@@ -56,7 +56,9 @@ token = flow.fetch_token(
 _client = _client_config.get("web") or _client_config.get("installed")
 _expires_at = token.get("expires_at")
 if isinstance(_expires_at, (int, float)):
-    _expires_at = datetime.fromtimestamp(_expires_at, tz=timezone.utc)
+    _expires_at = datetime.fromtimestamp(
+        _expires_at, tz=timezone.utc
+    ).replace(tzinfo=None)
 
 credentials = Credentials(
     token=token["access_token"],
