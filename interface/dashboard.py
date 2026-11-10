@@ -308,7 +308,7 @@ class Dashboard(ctk.CTk):
 
         self.reauth_button = ctk.CTkButton(
             actions_card,
-            text="ReAutentizar",
+            text="ReAutenticar",
             command=self._start_reauth,
             state="disabled",
             fg_color=COL_DISABLED,
@@ -565,7 +565,7 @@ class Dashboard(ctk.CTk):
             ]
         )
         sent = 0
-        failed = 0
+        failed: list[str] = []
         for preview in previews:
             try:
                 response = send_email(service, preview, sender)
@@ -587,11 +587,24 @@ class Dashboard(ctk.CTk):
                     status="failed",
                     error_message=str(error),
                 )
-                failed += 1
+                failed.append(f"{preview.recipient} ({preview.school}): {error}")
         self._refresh_history()
+        message_lines = [f"{sent} documento(s) enviado(s) com sucesso."]
+        if skipped:
+            message_lines.append(f"{len(skipped)} ignorado(s) por falta de documento:")
+            message_lines.extend(f"  - {item}" for item in skipped)
+        if failed:
+            message_lines.append(f"{len(failed)} falharam:")
+            message_lines.extend(f"  - {item}" for item in failed)
+        if not previews:
+            message_lines = ["Nenhum documento encontrado para enviar."]
+        messagebox.showinfo(
+            "Resultado do envio",
+            "\n".join(message_lines),
+        )
         skipped_text = f" Ignorados por falta de ficheiro: {len(skipped)}." if skipped else ""
         self.status_label.configure(
-            text=f"Envio concluído: {sent} enviados, {failed} falhados.{skipped_text}"
+            text=f"Envio concluído: {sent} enviados, {len(failed)} falhados.{skipped_text}"
         )
 
     def _show_preview(self, previews: list[EmailPreview]) -> None:
